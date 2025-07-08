@@ -1,6 +1,7 @@
 import os
 import time
 import torch
+import torch_npu
 from magic_pdf.config.constants import *
 from magic_pdf.model.sub_modules.model_init import AtomModelSingleton
 from magic_pdf.model.model_list import AtomicModel
@@ -33,6 +34,8 @@ class MonkeyOCR:
         bf16_supported = False
         if self.device.startswith("cuda"):
             bf16_supported = torch.cuda.is_bf16_supported()
+        elif self.device.startswith("npu"):
+            bf16_supported = torch.npu.is_bf16_supported()
         elif self.device.startswith("mps"):
             bf16_supported = True
         
@@ -152,7 +155,10 @@ class MonkeyChat_LMDeploy:
 
     def _auto_config_dtype(self, engine_config=None, PytorchEngineConfig=None):
         if engine_config is None:
-            engine_config = PytorchEngineConfig(session_len=10240)
+            if torch.npu.is_available():
+                engine_config = PytorchEngineConfig(tp=1, device_type='ascend', eager_mode=True, session_len=10240)
+            else:
+                engine_config = PytorchEngineConfig(session_len=10240)
         dtype = "bfloat16"
         if torch.cuda.is_available():
             device = torch.cuda.current_device()
@@ -220,13 +226,15 @@ class MonkeyChat_transformers:
         self.max_new_tokens = max_new_tokens
         
         if device is None:
-            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            self.device = 'cuda' if torch.cuda.is_available() else 'npu' if torch.npu.is_available() else 'cpu'
         else:
             self.device = device
         
         bf16_supported = False
         if self.device.startswith("cuda"):
             bf16_supported = torch.cuda.is_bf16_supported()
+        elif self.device.startswith("npu"):
+            bf16_supported = torch.npu.is_bf16_supported()
         elif self.device.startswith("mps"):
             bf16_supported = True
             
