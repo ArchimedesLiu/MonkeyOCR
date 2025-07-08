@@ -160,11 +160,6 @@ class MonkeyChat_LMDeploy:
             else:
                 engine_config = PytorchEngineConfig(session_len=10240)
                 
-        if device is None:
-            self.device = 'cuda' if torch.cuda.is_available() else 'npu' if torch.npu.is_available() else 'cpu'
-        else:
-            self.device = device
-        
         bf16_supported = False
         if self.device.startswith("cuda"):
             bf16_supported = torch.cuda.is_bf16_supported()
