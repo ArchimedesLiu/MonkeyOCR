@@ -141,13 +141,19 @@ class MonkeyOCR:
         logger.info(f'VLM loaded: {self.chat_model.model_name}')
 
 class MonkeyChat_LMDeploy:
-    def __init__(self, model_path, engine_config=None): 
+    def __init__(self, model_path, engine_config=None, device: str = None): 
         try:
             from lmdeploy import pipeline, GenerationConfig, PytorchEngineConfig, ChatTemplateConfig
         except ImportError:
             raise ImportError("LMDeploy is not installed. Please install it following: "
                               "https://github.com/Yuliang-Liu/MonkeyOCR/blob/main/docs/install_cuda.md "
                               "to use MonkeyChat_LMDeploy.")
+        
+        if device is None:
+            self.device = 'cuda' if torch.cuda.is_available() else 'npu' if torch.npu.is_available() else 'cpu'
+        else:
+            self.device = device
+            
         self.model_name = os.path.basename(model_path)
         self.engine_config = self._auto_config_dtype(engine_config, PytorchEngineConfig)
         self.pipe = pipeline(model_path, backend_config=self.engine_config, chat_template_config=ChatTemplateConfig('qwen2d5-vl'))
