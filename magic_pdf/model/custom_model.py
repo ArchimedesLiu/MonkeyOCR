@@ -159,7 +159,25 @@ class MonkeyChat_LMDeploy:
                 engine_config = PytorchEngineConfig(tp=1, device_type='ascend', eager_mode=True, session_len=10240)
             else:
                 engine_config = PytorchEngineConfig(session_len=10240)
-        dtype = "bfloat16"
+                
+        if device is None:
+            self.device = 'cuda' if torch.cuda.is_available() else 'npu' if torch.npu.is_available() else 'cpu'
+        else:
+            self.device = device
+        
+        bf16_supported = False
+        if self.device.startswith("cuda"):
+            bf16_supported = torch.cuda.is_bf16_supported()
+        elif self.device.startswith("npu"):
+            bf16_supported = torch.npu.is_bf16_supported()
+        elif self.device.startswith("mps"):
+            bf16_supported = True
+        
+        if bf16_supported:
+            dtype = "bfloat16"
+        else:
+            dtype = "float16"            
+        
         if torch.cuda.is_available():
             device = torch.cuda.current_device()
             capability = torch.cuda.get_device_capability(device)
