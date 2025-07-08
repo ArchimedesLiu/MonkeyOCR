@@ -217,6 +217,9 @@ class MonkeyChat_transformers:
     def __init__(self, model_path: str, max_batch_size: int = 10, max_new_tokens=4096, device: str = None):
         try:
             from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
+            from transformers import modeling_utils
+            if not hasattr(modeling_utils, "ALL_PARALLEL_STYLES") or modeling_utils.ALL_PARALLEL_STYLES is None:
+                modeling_utils.ALL_PARALLEL_STYLES = ["tp", "none","colwise",'rowwise']
         except ImportError:
             raise ImportError("transformers is not installed. Please install it following: "
                               "https://github.com/Yuliang-Liu/MonkeyOCR/blob/main/docs/install_cuda.md "
@@ -247,9 +250,8 @@ class MonkeyChat_transformers:
                         model_path,
                         torch_dtype=torch.bfloat16 if bf16_supported else torch.float16,
                         attn_implementation="flash_attention_2" if self.device.startswith("cuda") else 'sdpa',
-                        device_map=self.device,
+                        device_map="auto",
                     )
-                
             self.processor = AutoProcessor.from_pretrained(
                 model_path,
                 trust_remote_code=True
