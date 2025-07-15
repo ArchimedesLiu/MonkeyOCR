@@ -13,8 +13,11 @@ from qwen_vl_utils import process_vision_info
 from PIL import Image
 from typing import List, Union
 from openai import OpenAI
+import json
+import requests
 import asyncio
 
+torch.npu.set_compile_mode(jit_compile=False)
 
 class MonkeyOCR:
     def __init__(self, config_path):
@@ -263,6 +266,7 @@ class MonkeyChat_transformers:
         logger.info(f"Loading Qwen2.5VL model from: {model_path}")
         logger.info(f"Using device: {self.device}")
         logger.info(f"Max batch size: {self.max_batch_size}")
+        logger.info(f"bf16 supported: {bf16_supported}")
         
         try:
             self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
@@ -434,10 +438,8 @@ class MonkeyChat_transformers:
 class MonkeyChat_OpenAIAPI:
     def __init__(self, url: str, model_name: str, api_key: str = None):
         self.model_name = model_name
-        self.client = OpenAI(
-            api_key=api_key,
-            base_url=url
-        )
+        self.url = url
+        self.api_key = api_key
         if not self.validate_connection():
             raise ValueError("Invalid API URL or API key. Please check your configuration.")
 
@@ -447,9 +449,15 @@ class MonkeyChat_OpenAIAPI:
         """
         try:
             # Try to get model list to validate connection
-            response = self.client.models.list()
-            logger.info("API connection validation successful")
-            return True
+            # response = self.client.models.list()
+            INFO_URL = f"{self.url}/v1/models"
+            response = requests.get(INFO_URL)
+            if response.status_code == 200:
+                logger.info("API connection validation successful")
+                return response.json()  # 返回响应结果
+            else:
+                logger.error(f"Error: Received status code {response.status_code} when fetching model info.")
+                return False
         except Exception as e:
             logger.error(f"API connection validation failed: {e}")
             return False
@@ -464,6 +472,7 @@ class MonkeyChat_OpenAIAPI:
         return image, img_format.lower()
 
     def batch_inference(self, images: List[Union[str, Image.Image]], questions: List[str]) -> List[str]:
+        GENERATE_URL= f"{self.url}/generate"
         results = []
         for image, question in zip(images, questions):
             try:
@@ -471,24 +480,36 @@ class MonkeyChat_OpenAIAPI:
                 image = load_image(image, max_size=1600)
                 img, img_type = self.img2base64(image)
 
-                messages=[{
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "input_image",
-                            "image_url": f"data:image/{img_type};base64,{img}"
-                        },
-                        {
-                            "type": "input_text", 
-                            "text": question
-                        }
-                    ],
-                }]
-                response = self.client.chat.completions.create(
-                    model=self.model_name,
-                    messages=messages
-                )
-                results.append(response.choices[0].message.content)
+                prompt=[
+                    {"type": "text", "text": question},
+                    {
+                        "type": "image_url",
+                        "image_url": f"data:image/{img_type};base64,{img}"
+                    }
+                ]
+                headers = {"Content-Type": "application/json"}
+                payload = {
+                    "prompt": prompt,
+                    "max_tokens": 512,
+                    "repetition_penalty": 1.03,
+                    "presence_penalty": 1.2,
+                    "frequency_penalty": 1.2,
+                    "temperature": 0.6,
+                    "top_k": 10,
+                    "top_p": 0.95
+                }
+                response = requests.post(GENERATE_URL, headers=headers, data=json.dumps(payload))
+                # response = self.client.chat.completions.create(
+                #     model=self.model_name,
+                #     messages=messages
+                # )
+                if response.status_code == 200:
+                    response = response.json()
+                    result = response.get('text', 'None')[0]
+                    logger.info(f"{result[len(question):].strip()}")
+                    results.append(result[len(question):].strip())
+                else:
+                    print(f"Error: Received status code {response.status_code} when calling TGI API.")               
             except Exception as e:
                 results.append(f"Error: {e}")
         return results
