@@ -10,20 +10,19 @@ from PIL import Image
 from magic_pdf.model.sub_modules.model_utils import (
     clean_vram, crop_img)
 
-YOLO_LAYOUT_BASE_BATCH_SIZE = 1
+YOLO_LAYOUT_BASE_BATCH_SIZE = 8
 
 class BatchAnalyzeLLM:
     def __init__(self, model):
         self.model = model
 
-    def __call__(self, images: list, split_pages: bool = False) -> list:
+    def __call__(self, images: list, split_pages: bool = False, pred_abandon: bool = False) -> list:
         images_layout_res = []
 
         layout_start_time = time.time()
         if self.model.layout_model_name == MODEL_NAME.DocLayout_YOLO:
             # doclayout_yolo
             layout_images = []
-            modified_images = []
             for image_index, image in enumerate(images):
                 pil_img = Image.fromarray(image)
                 layout_images.append(pil_img)
@@ -32,18 +31,6 @@ class BatchAnalyzeLLM:
                 # layout_images, self.batch_ratio * YOLO_LAYOUT_BASE_BATCH_SIZE
                 layout_images, YOLO_LAYOUT_BASE_BATCH_SIZE
             )
-
-            for image_index, useful_list in modified_images:
-                for res in images_layout_res[image_index]:
-                    for i in range(len(res['poly'])):
-                        if i % 2 == 0:
-                            res['poly'][i] = (
-                                res['poly'][i] - useful_list[0] + useful_list[2]
-                            )
-                        else:
-                            res['poly'][i] = (
-                                res['poly'][i] - useful_list[1] + useful_list[3]
-                            )
                             
         elif self.model.layout_model_name == MODEL_NAME.PaddleXLayoutModel:
             # PP-DocLayout_plus-L
@@ -51,9 +38,11 @@ class BatchAnalyzeLLM:
             for image_index, image in enumerate(images):
                 pil_img = Image.fromarray(image)
                 paddlex_layout_images.append(pil_img)
-            images_layout_res += self.model.layout_model.batch_predict(
+            layout_results = self.model.layout_model.batch_predict(
                 paddlex_layout_images, YOLO_LAYOUT_BASE_BATCH_SIZE 
             )
+            
+            images_layout_res += layout_results
         else: 
             logger.error(f"Unsupported layout model name: {self.model.layout_model_name}")
             raise ValueError(f"Unsupported layout model name: {self.model.layout_model_name}")
@@ -61,6 +50,13 @@ class BatchAnalyzeLLM:
         logger.info(
             f'layout time: {round(time.time() - layout_start_time, 2)}, image num: {len(images)}'
         )
+
+        if pred_abandon:
+            for index in range(len(images)):
+                layout_res = images_layout_res[index]
+                for res in layout_res:
+                    if res['category_id'] == 2:
+                        res['category_id'] = 1
 
         clean_vram(self.model.device, vram_threshold=8)
 
@@ -118,8 +114,9 @@ class BatchAnalyzeLLM:
             new_images = []
             cids = []
             for res in layout_res:
+                pad_size = 0 if res['category_id'] == 5 else 50
                 new_image, useful_list = crop_img(
-                    res, pil_img, crop_paste_x=50, crop_paste_y=50
+                    res, pil_img, crop_paste_x=pad_size, crop_paste_y=pad_size
                 )
                 new_images.append(new_image)
                 cids.append(res['category_id'])
@@ -162,23 +159,12 @@ class BatchAnalyzeLLM:
         return images_layout_res
 
     def batch_llm_ocr(self, images, cat_ids, version='lmdeploy'):
-        import re
         def sanitize_md(output):
-            cleaned = re.match(r'<md>.*</md>', output, flags=re.DOTALL)
-            if cleaned is None:
-                return output.replace('<md>', '').replace('</md>', '').replace('md\n','').strip()
-            return f"{cleaned[0].replace('<md>', '').replace('</md>', '').strip()}"
-        def sanitize_mf(output):
-            cleaned = re.match(r'\$\$.*\$\$', output, flags=re.DOTALL)
-            if cleaned is None:
-                return output.replace('$$', '').strip()
-            return f"{cleaned[0].replace('$$', '').strip()}"
+            return output.replace('<md>', '').replace('</md>', '').replace('md\n','').strip()
+        def sanitize_mf(output:str):
+            return output.replace('$$', '').strip('$').strip()
         def sanitize_html(output):
-            # cleaned = re.match(r'<html>.*</html>', output, flags=re.DOTALL)
-            cleaned = re.match(r'```html.*```', output, flags=re.DOTALL)
-            if cleaned is None:
-                return '<html>\n'+output.replace('```html','<html>').replace('```','</html>').strip()+'\n</html>'
-            return f"{cleaned[0].replace('```html','<html>').replace('```','</html>').strip()}"
+            return output.replace('```html','').replace('```','').replace('<html>','').replace('</html>','').strip()
         assert len(images) == len(cat_ids)
         instruction = f'''Please output the text content from the image.'''
         instruction_mf = f'''Please write out the expression of the formula in the image using LaTeX format.'''

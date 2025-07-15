@@ -18,7 +18,7 @@ TASK_INSTRUCTIONS = {
     'table': 'This is the image of a table. Please output the table in html format.'
 }
 
-def parse_folder(folder_path, output_dir, config_path, task=None, split_pages=False, group_size=None):
+def parse_folder(folder_path, output_dir, config_path, task=None, split_pages=False, group_size=None, pred_abandon=False):
     """
     Parse all PDF and image files in a folder
     
@@ -79,8 +79,8 @@ def parse_folder(folder_path, output_dir, config_path, task=None, split_pages=Fa
                 if task:
                     result_dir = single_task_recognition_multi_file_group(file_group, output_dir, MonkeyOCR_model, task, folder_path)
                 else:
-                    result_dir = parse_multi_file_group(file_group, output_dir, MonkeyOCR_model, folder_path, split_pages)
-                
+                    result_dir = parse_multi_file_group(file_group, output_dir, MonkeyOCR_model, folder_path, split_pages, pred_abandon)
+
                 successful_files.extend(file_group)
                 print(f"✅ Successfully processed file group {i}")
                 
@@ -102,7 +102,7 @@ def parse_folder(folder_path, output_dir, config_path, task=None, split_pages=Fa
                 if task:
                     result_dir = single_task_recognition(file_path, output_dir, MonkeyOCR_model, task)
                 else:
-                    result_dir = parse_file(file_path, output_dir, MonkeyOCR_model)
+                    result_dir = parse_file(file_path, output_dir, MonkeyOCR_model, pred_abandon=pred_abandon)
                 
                 successful_files.append(file_path)
                 print(f"✅ Successfully processed: {os.path.basename(file_path)}")
@@ -191,7 +191,7 @@ def create_file_groups_by_page_count(file_paths, max_pages_per_group):
     
     return groups
 
-def parse_multi_file_group(file_paths, output_dir, MonkeyOCR_model, base_folder_path, split_pages=False):
+def parse_multi_file_group(file_paths, output_dir, MonkeyOCR_model, base_folder_path, split_pages=False, pred_abandon=False):
     """
     Parse a group of mixed PDF and image files using MultiFileDataset
     
@@ -226,11 +226,8 @@ def parse_multi_file_group(file_paths, output_dir, MonkeyOCR_model, base_folder_
     # Start inference with split_files=True to get individual file results
     print("Performing document parsing on multi-file group...")
     start_time = time.time()
-    
-    infer_result = ds.apply(doc_analyze_llm, MonkeyOCR_model=MonkeyOCR_model, split_files=True, split_pages=split_pages)
-    
-    parsing_time = time.time() - start_time
-    print(f"Parsing time: {parsing_time:.2f}s")
+
+    infer_result = ds.apply(doc_analyze_llm, MonkeyOCR_model=MonkeyOCR_model, split_files=True, split_pages=split_pages, pred_abandon=pred_abandon)
 
     # Process each file result separately using original file names
     for file_idx, (file_infer_result, file_path) in enumerate(zip(infer_result, file_paths)):
@@ -297,6 +294,9 @@ def parse_multi_file_group(file_paths, output_dir, MonkeyOCR_model, base_folder_
             file_pipe_result.dump_md(file_md_writer, f"{file_name}.md", image_dir)
             file_pipe_result.dump_content_list(file_md_writer, f"{file_name}_content_list.json", image_dir)
             file_pipe_result.dump_middle_json(file_md_writer, f'{file_name}_middle.json')
+
+    parsing_time = time.time() - start_time
+    print(f"Parsing and saving time: {parsing_time:.2f}s")
     
     print(f"All {len(infer_result)} files processed and saved in separate directories")
     
@@ -498,7 +498,7 @@ def single_task_recognition(input_file, output_dir, MonkeyOCR_model, task):
     except Exception as e:
         raise RuntimeError(f"Single task recognition failed: {str(e)}")
 
-def parse_file(input_file, output_dir, MonkeyOCR_model, split_pages=False):
+def parse_file(input_file, output_dir, MonkeyOCR_model, split_pages=False, pred_abandon=False):
     """
     Parse PDF or image and save results
     
@@ -543,11 +543,8 @@ def parse_file(input_file, output_dir, MonkeyOCR_model, split_pages=False):
     print("Performing document parsing...")
     start_time = time.time()
     
-    infer_result = ds.apply(doc_analyze_llm, MonkeyOCR_model=MonkeyOCR_model, split_pages=split_pages)
+    infer_result = ds.apply(doc_analyze_llm, MonkeyOCR_model=MonkeyOCR_model, split_pages=split_pages, pred_abandon=pred_abandon)
     
-    parsing_time = time.time() - start_time
-    print(f"Parsing time: {parsing_time:.2f}s")
-
     # Check if infer_result is a list type
     if isinstance(infer_result, list):
         print(f"Processing {len(infer_result)} pages separately...")
@@ -599,6 +596,9 @@ def parse_file(input_file, output_dir, MonkeyOCR_model, split_pages=False):
         pipe_result.dump_content_list(md_writer, f"{name_without_suff}_content_list.json", image_dir)
 
         pipe_result.dump_middle_json(md_writer, f'{name_without_suff}_middle.json')
+
+    parsing_time = time.time() - start_time
+    print(f"Parsing and saving time: {parsing_time:.2f}s")
     
     print("Results saved to ", local_md_dir)
     return local_md_dir
@@ -634,6 +634,7 @@ Usage examples:
   # Advanced configurations
   python parse.py input.pdf -c model_configs.yaml     # Custom model configuration
   python parse.py /path/to/folder -g 15 -s -o ./out   # Group files, split pages, custom output
+  python parse.py input.pdf --pred-abandon            # Enable predicting abandon elements
         """
     )
     
@@ -671,6 +672,12 @@ Usage examples:
         type=int,
         help="Maximum total page count per group when processing folders (applies to all file types)"
     )
+
+    parser.add_argument(
+        "--pred-abandon",
+        action='store_true',
+        help="Enable predicting abandon elements like footer and header (default: False)"
+    )
     
     args = parser.parse_args()
     
@@ -681,12 +688,13 @@ Usage examples:
         if os.path.isdir(args.input_path):
             # Process folder
             result_dir = parse_folder(
-                args.input_path,
-                args.output,
-                args.config,
-                args.task,
-                args.split_pages,
-                args.group_size
+                folder_path = args.input_path,
+                output_dir = args.output,
+                config_path = args.config,
+                task = args.task,
+                split_pages = args.split_pages,
+                group_size = args.group_size,
+                pred_abandon = args.pred_abandon
             )
             
             if args.task:
@@ -706,18 +714,19 @@ Usage examples:
             
             if args.task:
                 result_dir = single_task_recognition(
-                    args.input_path,
-                    args.output,
-                    MonkeyOCR_model,
-                    args.task
+                    input_file = args.input_path,
+                    output_dir = args.output,
+                    MonkeyOCR_model = MonkeyOCR_model,
+                    task = args.task
                 )
                 print(f"\n✅ Single task ({args.task}) recognition completed! Results saved in: {result_dir}")
             else:
                 result_dir = parse_file(
-                    args.input_path,
-                    args.output,
-                    MonkeyOCR_model,
-                    args.split_pages
+                    input_file = args.input_path,
+                    output_dir = args.output,
+                    MonkeyOCR_model = MonkeyOCR_model,
+                    split_pages = args.split_pages,
+                    pred_abandon = args.pred_abandon
                 )
                 print(f"\n✅ Parsing completed! Results saved in: {result_dir}")
         else:
