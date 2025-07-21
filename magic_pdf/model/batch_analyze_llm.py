@@ -182,7 +182,7 @@ class BatchAnalyzeLLM:
         assert len(images) == len(cat_ids)
         instruction = f'''Please output the text content from the image.'''
         instruction_mf = f'''Please write out the expression of the formula in the image using LaTeX format.'''
-        instruction_table = f'''This is the image of a table. Please output the table in html format.'''
+        instruction_table = f'''This is the image of a table. Please output the table in HTML format.'''
         cid2instruction = {
             0: instruction,
             1: instruction,

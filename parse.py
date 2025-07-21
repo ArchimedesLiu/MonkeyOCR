@@ -15,7 +15,7 @@ from magic_pdf.model.custom_model import MonkeyOCR
 TASK_INSTRUCTIONS = {
     'text': 'Please output the text content from the image.',
     'formula': 'Please write out the expression of the formula in the image using LaTeX format.',
-    'table': 'This is the image of a table. Please output the table in html format.'
+    'table': 'This is the image of a table. Please output the table in HTML format.'
 }
 
 def parse_folder(folder_path, output_dir, config_path, task=None, split_pages=False, group_size=None):
@@ -624,7 +624,7 @@ Usage examples:
   # Folder processing (all files individually)
   python parse.py /path/to/folder                     # Parse all files in folder
   python parse.py /path/to/folder -s                  # Parse with page splitting
-  python parse.py /path/to/folder -t text             # Single task recognition for all files
+  python parse.py /path/to/folder -t text             # Single task recognition for all files (need apt-get install -y poppler-utils)
   
   # Multi-file grouping (batch processing by page count)
   python parse.py /path/to/folder -g 5                # Group files with max 5 total pages

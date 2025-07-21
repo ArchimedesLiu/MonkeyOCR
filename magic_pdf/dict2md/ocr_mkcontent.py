@@ -75,6 +75,7 @@ def ocr_mk_markdown_with_para_core_v2(paras_of_layout,
                             for span in line['spans']:
                                 if span['type'] == ContentType.Image:
                                     if span.get('image_path', ''):
+                                        # 将非ocr块图片路径转换为Markdown格式
                                         para_text += f"\n![]({join_path(img_buket_path, span['image_path'])})  \n"
                 for block in para_block['blocks']:
                     if block['type'] == BlockType.ImageCaption:
@@ -100,6 +101,7 @@ def ocr_mk_markdown_with_para_core_v2(paras_of_layout,
                                     elif span.get('html', ''):
                                         para_text += f"\n\n{span['html']}\n\n"
                                     elif span.get('image_path', ''):
+                                        # 将表格以图片形式插入
                                         para_text += f"\n![]({join_path(img_buket_path, span['image_path'])})  \n"
                 for block in para_block['blocks']:
                     if block['type'] == BlockType.TableFootnote:
@@ -207,6 +209,7 @@ def para_to_standard_format_v2(para_block, img_buket_path, page_idx, drop_reason
                     for span in line['spans']:
                         if span['type'] == ContentType.Image:
                             if span.get('image_path', ''):
+                                # 将表格作为图片插入
                                 para_content['img_path'] = join_path(img_buket_path, span['image_path'])
             if block['type'] == BlockType.ImageCaption:
                 para_content['img_caption'].append(merge_para_with_text(block))
@@ -224,7 +227,7 @@ def para_to_standard_format_v2(para_block, img_buket_path, page_idx, drop_reason
                                 para_content['table_body'] = f"\n\n$\n {span['latex']}\n$\n\n"
                             elif span.get('html', ''):
                                 para_content['table_body'] = f"\n\n{span['html']}\n\n"
-
+                            # 记录表格图片路径
                             if span.get('image_path', ''):
                                 para_content['img_path'] = join_path(img_buket_path, span['image_path'])
 
