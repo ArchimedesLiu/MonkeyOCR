@@ -16,6 +16,7 @@ def doc_analyze_llm(
     end_page_id=None,
     split_pages=False,
     split_files=False,
+    pred_abandon=False,
 ) -> InferenceResultLLM:
 
     end_page_id = end_page_id if end_page_id else len(dataset) - 1
@@ -27,13 +28,17 @@ def doc_analyze_llm(
     model_json = []
     doc_analyze_start = time.time()
 
+    image_dicts = []
     images = []
     for index in range(len(dataset)):
         if start_page_id <= index <= end_page_id:
             page_data = dataset.get_page(index)
             img_dict = page_data.get_image()
+            image_dicts.append(img_dict)
             images.append(img_dict['img'])
-    analyze_result = batch_model(images, split_pages=split_pages or split_files)
+    
+    logger.info(f'images load time: {round(time.time() - doc_analyze_start, 2)}')
+    analyze_result = batch_model(images, split_pages=split_pages or split_files, pred_abandon=pred_abandon)
 
     # Handle MultiFileDataset with split_files
     if split_files and isinstance(dataset, MultiFileDataset):
@@ -56,8 +61,7 @@ def doc_analyze_llm(
                 else:
                     result = []
                 
-                page_data = dataset.get_page(global_page_idx)
-                img_dict = page_data.get_image()
+                img_dict = image_dicts[global_page_idx]
                 page_width = img_dict['width']
                 page_height = img_dict['height']
                 
@@ -99,8 +103,7 @@ def doc_analyze_llm(
         # Original logic for non-split_files cases
         inference_results = []
         for index in range(len(dataset)):
-            page_data = dataset.get_page(index)
-            img_dict = page_data.get_image()
+            img_dict = image_dicts[index]
             page_width = img_dict['width']
             page_height = img_dict['height']
             if start_page_id <= index <= end_page_id:
