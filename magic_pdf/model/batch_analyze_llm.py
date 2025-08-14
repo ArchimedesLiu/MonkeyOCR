@@ -164,7 +164,10 @@ class BatchAnalyzeLLM:
         def sanitize_mf(output:str):
             return output.replace('$$', '').strip('$').strip()
         def sanitize_html(output):
-            return output.replace('```html','').replace('```','').replace('<html>','').replace('</html>','').strip()
+            output = output.replace('```html','').replace('```','').replace('<html>','').replace('</html>','').strip()
+            if not output.endswith('</table>'):
+                output += '</table>'
+            return output.strip()
         assert len(images) == len(cat_ids)
         instruction = f'''Please output the text content from the image.'''
         instruction_mf = f'''Please write out the expression of the formula in the image using LaTeX format.'''

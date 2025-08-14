@@ -453,11 +453,11 @@ async def async_single_task_recognition(input_file_path: str, output_dir: str, t
         images = []
         
         if file_extension == 'pdf':
-            from pdf2image import convert_from_path
-            images = convert_from_path(input_file_path, dpi=150)
+            from magic_pdf.utils.load_image import pdf_to_images
+            images = pdf_to_images(input_file_path)
         elif file_extension in ['jpg', 'jpeg', 'png']:
             from PIL import Image
-            images = [Image.open(input_file_path)]
+            images = [input_file_path]
         else:
             raise ValueError(f"Unsupported file extension: {file_extension}")
         
@@ -624,7 +624,7 @@ async def create_zip_file_async(result_dir, zip_path, original_name, split_pages
                                 if filename_part.startswith('images/'):
                                     # Handle images: page_0/images/img.jpg -> page_0/images/original_name_img.jpg
                                     img_name = filename_part.replace('images/', '')
-                                    new_filename = f"{page_dir}/images/{original_name}_{img_name}"
+                                    new_filename = f"{page_dir}/images/{img_name}"
                                 else:
                                     # Handle other files in page directories
                                     new_filename = f"{page_dir}/{original_name}_{filename_part}"
@@ -651,7 +651,7 @@ async def create_zip_file_async(result_dir, zip_path, original_name, split_pages
                             if 'images/' in rel_path:
                                 # Keep images in images subfolder with original name prefix
                                 image_name = os.path.basename(rel_path)
-                                new_filename = f"images/{original_name}_{image_name}"
+                                new_filename = f"images/{image_name}"
                             else:
                                 new_filename = f"{original_name}_{filename}"
                     

@@ -52,7 +52,7 @@ See detailed results below.
     </thead>
     <tbody>
     	<tr align='center'>
-    		<td rowspan='3'>MonkeyOCR-pro-3B</td>
+    		<td rowspan='4'>MonkeyOCR-pro-3B</td>
         	<td>3090</td>
         	<td>0.492</td>
         	<td>0.484</td>
@@ -69,6 +69,14 @@ See detailed results below.
         	<td>0.608</td>
     	</tr>
     	<tr align='center'>
+        	<td>H800</td>
+        	<td>0.923</td>
+        	<td>0.768</td>
+        	<td>0.897</td>
+        	<td>0.930</td>
+        	<td>0.891</td>
+    	</tr>
+    	<tr align='center'>
         	<td>4090</td>
         	<td>0.972</td>
         	<td>0.969</td>
@@ -77,7 +85,7 @@ See detailed results below.
         	<td>1.006</td>
     	</tr>
     	<tr align='center'>
-    		<td rowspan='3'>MonkeyOCR-pro-1.2B</td>
+    		<td rowspan='4'>MonkeyOCR-pro-1.2B</td>
         	<td>3090</td>
         	<td>0.615</td>
         	<td>0.660</td>
@@ -93,6 +101,14 @@ See detailed results below.
         	<td>0.829</td>
         	<td>0.825</td>
    		</tr>
+    	<tr align='center'>
+        	<td>H800</td>
+        	<td>0.965</td>
+        	<td>1.082</td>
+        	<td>1.101</td>
+        	<td>1.145</td>
+        	<td>1.015</td>
+    	</tr>
     	<tr align='center'>
         	<td>4090</td>
         	<td>1.194</td>
@@ -120,7 +136,7 @@ See detailed results below.
     </thead>
     <tbody>
     	<tr align='center'>
-    		<td rowspan='3'>MonkeyOCR-pro-3B</td>
+    		<td rowspan='4'>MonkeyOCR-pro-3B</td>
         	<td>3090</td>
         	<td>0.705</td>
         	<td>0.680</td>
@@ -137,6 +153,14 @@ See detailed results below.
         	<td>0.934</td>
     	</tr>
     	<tr align='center'>
+        	<td>H800</td>
+        	<td>1.371</td>
+        	<td>1.135</td>
+        	<td>1.339</td>
+        	<td>1.433</td>
+        	<td>1.509</td>
+    	</tr>
+    	<tr align='center'>
         	<td>4090</td>
         	<td>1.321</td>
         	<td>1.300</td>
@@ -145,7 +169,7 @@ See detailed results below.
         	<td>1.410</td>
     	</tr>
     	<tr align='center'>
-    		<td rowspan='3'>MonkeyOCR-pro-1.2B</td>
+    		<td rowspan='4'>MonkeyOCR-pro-1.2B</td>
         	<td>3090</td>
         	<td>0.919</td>
         	<td>1.086</td>
@@ -162,6 +186,14 @@ See detailed results below.
         	<td>1.569</td>
    		</tr>
     	<tr align='center'>
+        	<td>H800</td>
+        	<td>1.466</td>
+        	<td>1.719</td>
+        	<td>1.763</td>
+        	<td>1.875</td>
+        	<td>1.650</td>
+    	</tr>
+    	<tr align='center'>
         	<td>4090</td>
         	<td>1.759</td>
         	<td>1.987</td>
@@ -172,6 +204,11 @@ See detailed results below.
     </tbody>
 </table>
 
+
+## Supported Hardware
+Due to the limited types of GPUs available to us, we may not be able to provide highly accurate hardware specifications. We've tested the model on GPUs such as the 3090, 4090, A6000, H800, A100, and even the 4060 with 8GB of VRAM (suitable for deploying quantized 3B model and 1.2B model). We are very grateful for the feedback and contributions from the open-source community, who have also successfully run the model on [50-series GPUs](https://github.com/Yuliang-Liu/MonkeyOCR/issues/90), [H200](https://github.com/Yuliang-Liu/MonkeyOCR/issues/151), [L20](https://github.com/Yuliang-Liu/MonkeyOCR/issues/133), [V100](https://github.com/Yuliang-Liu/MonkeyOCR/issues/144), [2080 Ti](https://github.com/Yuliang-Liu/MonkeyOCR/pull/1) and [npu](https://github.com/Yuliang-Liu/MonkeyOCR/pull/226/files).
+
+
 ## News 
 * ```2025.07.10 ``` 🚀 We release [MonkeyOCR-pro-1.2B](https://huggingface.co/echo840/MonkeyOCR-pro-1.2B), — a leaner and faster version model that outperforms our previous 3B version in accuracy, speed, and efficiency.
 * ```2025.06.12 ``` 🚀 The model’s trending on [Hugging Face](https://huggingface.co/models?sort=trending). Thanks for the love!
@@ -181,20 +218,20 @@ See detailed results below.
 # Quick Start
 ## Locally Install
 ### 1. Install MonkeyOCR
-See the [installation guide](https://github.com/Yuliang-Liu/MonkeyOCR/blob/main/docs/install_cuda.md#install-with-cuda-support) to set up your environment.
+See the [installation guide](https://github.com/Yuliang-Liu/MonkeyOCR/blob/main/docs/install_cuda_pp.md#install-with-cuda-support) to set up your environment.
 ### 2. Download Model Weights
 Download our model from Huggingface.
 ```python
 pip install huggingface_hub
 
-python tools/download_model.py -n MonkeyOCR-pro-1.2B  # MonkeyOCR
+python tools/download_model.py -n MonkeyOCR  # or MonkeyOCR-pro-1.2B
 ```
 You can also download our model from ModelScope.
 
 ```python
 pip install modelscope
 
-python tools/download_model.py -t modelscope -n MonkeyOCR-pro-1.2B   # MonkeyOCR
+python tools/download_model.py -t modelscope -n MonkeyOCR  # or MonkeyOCR-pro-1.2B
 ```
 ### 3. Inference
 You can parse a file or a directory containing PDFs or images using the following commands:
@@ -251,28 +288,10 @@ python parse.py input.pdf --pred-abandon            # Enable predicting abandon 
 
 </details>
 
-> [!TIP]
-> 
-> For Chinese scenarios, or cases where text, tables, etc. are mistakenly recognized as images, you can try using the following structure detection model: [layout\_zh.pt](https://huggingface.co/echo840/MonkeyOCR/blob/main/Structure/layout_zh.pt).
-> (If the model is not found in `model_weight/Structure/`, you can download it manually.)
-> 
-> To use this model, update the configuration file [`model_configs.yaml`](https://github.com/Yuliang-Liu/MonkeyOCR/blob/main/model_configs.yaml#L3) as follows:  
-> 
-> ```yaml
-> doclayout_yolo: Structure/layout_zh.pt
-> ```
->
-> We have added support for the [PP-DocLayout_plus-L](https://huggingface.co/PaddlePaddle/PP-DocLayout_plus-L), which offers improved performance over doclayout_yolo. MonkeyOCR-pro-3B and MonkeyOCR-pro-1.2B utilized PP-DocLayout_plus-L for evaluation.  Please refer to the [Usage Guide](docs/install_paddlex.md).
->
-> To use this model, please update the configuration file [`model_configs.yaml`](https://github.com/Yuliang-Liu/MonkeyOCR/blob/main/model_configs.yaml#L7) as follows:
->
-> ```yaml
-> model: PP-DocLayout_plus-L
-> ```
+<details>
+<summary><b>Output Results</b></summary>
 
-
-#### Output Results
-MonkeyOCR generates three types of output files:
+MonkeyOCR mainly generates three types of output files:
 
 1. **Processed Markdown File** (`your.md`): The final parsed document content in markdown format, containing text, formulas, tables, and other structured elements.
 2. **Layout Results** (`your_layout.pdf`): The layout results drawed on origin PDF.
@@ -283,11 +302,13 @@ MonkeyOCR generates three types of output files:
 
 These files provide both the final formatted output and detailed intermediate results for further analysis or processing.
 
+</details>
+
 ### 4. Gradio Demo
 ```bash
-# Start demo
 python demo/demo_gradio.py
 ```
+Once the demo is running, you can access it at http://localhost:7860.
 
 ### 5. Fast API
 You can start the MonkeyOCR FastAPI service with the following command:
@@ -321,7 +342,7 @@ Once the API service is running, you can access the API documentation at http://
 
 > [!IMPORTANT]
 >
-> If your GPU is from the 30/40-series, V100, or similar, please build the patched Docker image for LMDeploy compatibility:
+> If your GPU is from the 20/30/40-series, V100, L20/L40 or similar, please build the patched Docker image for LMDeploy compatibility:
 >
 > ```bash
 > docker compose build monkeyocr-fix
@@ -349,17 +370,15 @@ Once the API service is running, you can access the API documentation at http://
 
 ## Windows Support 
 
-See the [Windows Support](docs/windows_support.md) Guide for details.
+See the [windows support guide](docs/windows_support.md) for details.
 
 ## Quantization
 
-This model can be quantized using AWQ. Follow the instructions in the [Quantization guide](docs/Quantization.md).
+This model can be quantized using AWQ. Follow the instructions in the [quantization guide](docs/Quantization.md).
 
 ## Benchmark Results
 
-
 Here are the evaluation results of our model on OmniDocBench. MonkeyOCR-3B uses DocLayoutYOLO as the structure detection model, while MonkeyOCR-3B* uses our trained structure detection model with improved Chinese performance.
-
 
 ### 1. The end-to-end evaluation results of different tasks.
 
@@ -498,7 +517,7 @@ Here are the evaluation results of our model on OmniDocBench. MonkeyOCR-3B uses 
 <td>0.641</td>
 </tr>
 <tr>
-<td>PPStruct-V3</td>
+<td>PP-StructureV3</td>
 <td>0.145</td>
 <td><strong>0.206</strong></td>
 <td>0.058</td>
@@ -955,7 +974,7 @@ Here are the evaluation results of our model on OmniDocBench. MonkeyOCR-3B uses 
 </tbody>
 </table>
 
-### 4. The evaluation results of olmOCR-bench.
+### 3. The evaluation results of olmOCR-bench.
 
 <table>
 <thead>

@@ -26,18 +26,22 @@ log_error() {
 # Check if models already exist
 check_models_exist() {
     local model_files=(
-        "models--echo840--MonkeyOCR/snapshots"
         "Structure/doclayout_yolo_docstructbench_imgsz1280_2501.pt"
         "Structure/layout_zh.pt"
+        "Recognition/model-00001-of-00002.safetensors"
+        "Recognition/model-00002-of-00002.safetensors"
+        "Relation/model.safetensors"
+        "Structure/PP-DocLayout_plus-L/inference.pdiparams"
     )
-    
+
     for model_file in "${model_files[@]}"; do
-        if [ -d "$MODEL_DIR/$model_file" ] || [ -f "$MODEL_DIR/$model_file" ]; then
-            log_info "Found existing model file: $model_file"
-            return 0
+        if [ ! -d "$MODEL_DIR/$model_file" ] && [ ! -f "$MODEL_DIR/$model_file" ]; then
+            log_info "Missing model file or directory: $model_file"
+            return 1
         fi
     done
-    return 1
+    log_info "All required model files are present."
+    return 0
 }
 
 # Download models using ModelScope
